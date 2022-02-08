@@ -61,7 +61,7 @@ xdg-open http://localhost:8000
 7. Create new Pull Request
 
 If you find bugs, have feature requests or questions, please
-[file an issue](https://github.com/indieweb/microformats-parser-website-rust/issues).
+[file an issue](https://github.com/microformats/microformats-parser-website-rust/issues).
 
 
 ## License
