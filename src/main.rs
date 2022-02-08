@@ -85,7 +85,7 @@ async fn web() {
                     conn
                 }
             }),
-            StaticCompiledHandler::new(include_dir!("./static")).with_index_file("index.html"),
+            StaticCompiledHandler::new(include_dir!("$CARGO_MANIFEST_DIR/static")).with_index_file("index.html"),
         ))
         .await
 }
