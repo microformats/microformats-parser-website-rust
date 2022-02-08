@@ -3,7 +3,8 @@ use serde_json::json;
 use trillium::Conn;
 use trillium::Status;
 use trillium_router::Router;
-use trillium_static::StaticFileHandler;
+use trillium_static_compiled::include_dir;
+use trillium_static_compiled::StaticCompiledHandler;
 use trillium_tera::TeraConnExt;
 use trillium_tera::{Tera, TeraHandler};
 use url::Url;
@@ -84,7 +85,7 @@ async fn web() {
                     conn
                 }
             }),
-            StaticFileHandler::new("static").with_index_file("index.html"),
+            StaticCompiledHandler::new(include_dir!("./static")).with_index_file("index.html"),
         ))
         .await
 }
