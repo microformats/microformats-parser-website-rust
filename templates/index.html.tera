@@ -77,10 +77,10 @@
 
       <form method="post" action="/" class="mb-5">
         <div class="form-group">
-          <label for="doc">HTML</label>
+          <label for="html">HTML</label>
           <textarea
-            id="doc"
-            name="doc"
+            id="html"
+            name="html"
             rows="6"
             class="form-control form-control-lg"
           ></textarea>

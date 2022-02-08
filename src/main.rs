@@ -14,7 +14,7 @@ fn render(conn: Conn) -> Conn {
         .render("index.html.tera")
 }
 
-#[derive(serde::Deserialize, serde::Serialize)]
+#[derive(serde::Deserialize, serde::Serialize, Debug)]
 #[serde(rename_all = "kebab-case")]
 pub struct Query {
     url: Url,
@@ -35,13 +35,13 @@ async fn web() {
             TeraHandler::new(tera),
             trillium_logger::Logger::new(),
             trillium_conn_id::ConnId::new(),
-            Router::new().get("/*", |conn: Conn| async {
+            Router::new().any(&["get", "post"], "/*", |mut conn: Conn| async {
                 if let Some(true) = conn
                     .headers()
                     .get_str("accept")
                     .map(|v| v.contains("text/html") || v.contains("*/*"))
                 {
-                    match serde_qs::from_str::<Query>(conn.querystring()) {
+                    match serde_qs::from_str(conn.request_body_string().await.unwrap_or_default().as_str()).or_else(|_| serde_qs::from_str::<Query>(conn.querystring())) {
                         Ok(query) => {
                             let resp = match query.html {
                                 None => {
