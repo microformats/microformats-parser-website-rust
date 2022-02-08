@@ -27,8 +27,8 @@ async fn web() {
 
     let server = trillium_async_std::config()
         .with_nodelay()
-        .with_port(8000)
-        .with_host("0.0.0.0");
+        .with_port(std::env::var("PORT").unwrap_or("8000".to_string()).parse().unwrap_or(8000))
+        .with_host(&std::env::var("HOST").unwrap_or("0.0.0.0".to_string()));
 
     server
         .run_async((
