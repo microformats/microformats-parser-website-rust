@@ -1,13 +1,13 @@
 [package]
 name = "microformats-parser-website-rust"
-version = "0.1.0"
+version = "0.1.1"
 edition = "2021"
 authors = ["Jacky Alciné <yo@jacky.wtf>"]
 
 [dependencies.mf2]
 git = "https://gitlab.com/jackyalcine/microformats-parser"
 branch = "normalize-interface"
-package = "microformats_parser"
+package = "microformats"
 
 [dependencies]
 trillium = "0.2"

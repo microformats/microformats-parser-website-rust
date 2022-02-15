@@ -8,7 +8,7 @@ use trillium_tera::{Tera, TeraHandler};
 use url::Url;
 
 fn render(conn: Conn) -> Conn {
-    conn.assign("mf2rust_version", "0.1.0")
+    conn.assign("mf2rust_version", "0.2.0-pre")
         .render("index.html.tera")
 }
 
