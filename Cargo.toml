@@ -5,9 +5,8 @@ edition = "2021"
 authors = ["Jacky Alciné <yo@jacky.wtf>"]
 
 [dependencies.mf2]
-git = "https://gitlab.com/jackyalcine/microformats-parser"
-branch = "normalize-interface"
 package = "microformats"
+version = "0.2.0"
 
 [dependencies]
 trillium = "0.2"
