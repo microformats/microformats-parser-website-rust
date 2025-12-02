@@ -25,7 +25,12 @@ async fn web() {
 
     let server = trillium_async_std::config()
         .with_nodelay()
-        .with_port(std::env::var("PORT").unwrap_or("8000".to_string()).parse().unwrap_or(8000))
+        .with_port(
+            std::env::var("PORT")
+                .unwrap_or("8000".to_string())
+                .parse()
+                .unwrap_or(8000),
+        )
         .with_host(&std::env::var("HOST").unwrap_or("0.0.0.0".to_string()));
 
     server
@@ -35,7 +40,7 @@ async fn web() {
             trillium_conn_id::ConnId::new(),
             Router::new().any(&["get", "post"], "/*", |mut conn: Conn| async {
                 if let Some(true) = conn
-                    .headers()
+                    .request_headers()
                     .get_str("accept")
                     .map(|v| v.contains("text/html") || v.contains("*/*"))
                 {
@@ -43,16 +48,16 @@ async fn web() {
                         Ok(query) => {
                             let resp = match query.html {
                                 None => {
-                                    // FIXME: This is _not_ how one should handle this.
                                     let body = ureq::get(query.url.as_str())
                                         .call()
-                                        .map(|r| r.into_string().ok())
+                                        .map(|r| r.into_body())
+                                        .map(|mut b| b.read_to_string().ok())
                                         .unwrap_or_default()
                                         .unwrap_or_default();
                                     dbg!(&body);
-                                    mf2::from_html(&body, query.url)
+                                    mf2::from_html(&body, &query.url)
                                 }
-                                Some(html) => mf2::from_html(&html, query.url),
+                                Some(html) => mf2::from_html(&html, &query.url),
                             };
 
                             // FIXME: not ideal.
@@ -70,7 +75,7 @@ async fn web() {
                             });
 
                             conn.with_body(serde_json::to_string_pretty(&json).unwrap_or_default())
-                                .with_header("content-type", "application/json; utf-8")
+                                .with_response_header("content-type", "application/json; utf-8")
                                 .with_status(Status::Ok)
                                 .halt()
                         }
