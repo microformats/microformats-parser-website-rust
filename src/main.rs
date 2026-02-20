@@ -1,99 +1,142 @@
-use log::*;
+use askama::Template;
+use askama_web::WebTemplate;
+use poem::{IntoResponse, Response, Route, Server, handler, EndpointExt, listener::TcpListener, middleware::Tracing};
+use poem::web::Query;
+use serde::{Deserialize, Serialize};
 use serde_json::json;
-use trillium::Conn;
-use trillium::Status;
-use trillium_router::Router;
-use trillium_tera::TeraConnExt;
-use trillium_tera::{Tera, TeraHandler};
+use std::net::SocketAddr;
 use url::Url;
+use tracing::info;
 
-fn render(conn: Conn) -> Conn {
-    conn.assign("mf2rust_version", "0.16.1")
-        .render("index.html.tera")
+#[derive(Template, WebTemplate)]
+#[template(path = "index.html")]
+struct IndexTemplate {
+    mf2rust_version: String,
 }
 
-#[derive(serde::Deserialize, serde::Serialize, Debug)]
+#[derive(Debug, Deserialize, Serialize)]
 #[serde(rename_all = "kebab-case")]
-pub struct Query {
+pub struct QueryParams {
     url: Url,
     html: Option<String>,
 }
 
-async fn web() {
-    trace!("Setting up Microformats parsing demo website for Rust.");
-    let tera = Tera::new("templates/**/*.html.tera").unwrap();
+#[handler]
+async fn get_handler(
+    Query(query): Query<QueryParams>,
+) -> impl IntoResponse {
+    let resp = match query.html {
+        None => {
+            let client = reqwest::Client::new();
+            let response_result = client.get(query.url.as_str()).send().await;
+            let body = match response_result {
+                Ok(r) => r.text().await.unwrap_or_default(),
+                Err(_) => String::default(),
+            };
+            mf2::from_html(&body, &query.url)
+        }
+        Some(html) => mf2::from_html(&html, &query.url),
+    };
 
-    let server = trillium_async_std::config()
-        .with_nodelay()
-        .with_port(
-            std::env::var("PORT")
-                .unwrap_or("8000".to_string())
-                .parse()
-                .unwrap_or(8000),
-        )
-        .with_host(&std::env::var("HOST").unwrap_or("0.0.0.0".to_string()));
+    let doc = resp.unwrap_or_default();
+    let mut json_val = serde_json::to_value(&doc).unwrap_or_default();
+    
+    if let Some(obj) = json_val.as_object_mut() {
+        obj.insert("debug".to_string(), json!({
+            "package": "https://crates.io/crates/microformats2",
+            "version": "0.1.0",
+            "note": [
+                "This output was generated from microformats2 crate available at https://gitlab.com/maxburon/microformats-parser.",
+                "Please file any issues with the parser at https://gitlab.com/maxburon/microformats-parser/issues"
+            ]
+        }));
+    }
 
-    server
-        .run_async((
-            TeraHandler::new(tera),
-            trillium_logger::Logger::new(),
-            trillium_conn_id::ConnId::new(),
-            Router::new().any(&["get", "post"], "/*", |mut conn: Conn| async {
-                if let Some(true) = conn
-                    .request_headers()
-                    .get_str("accept")
-                    .map(|v| v.contains("text/html") || v.contains("*/*"))
-                {
-                    match serde_qs::from_str(conn.request_body_string().await.unwrap_or_default().as_str()).or_else(|_| serde_qs::from_str::<Query>(conn.querystring())) {
-                        Ok(query) => {
-                            let resp = match query.html {
-                                None => {
-                                    let body = ureq::get(query.url.as_str())
-                                        .call()
-                                        .map(|r| r.into_body())
-                                        .map(|mut b| b.read_to_string().ok())
-                                        .unwrap_or_default()
-                                        .unwrap_or_default();
-                                    dbg!(&body);
-                                    mf2::from_html(&body, &query.url)
-                                }
-                                Some(html) => mf2::from_html(&html, &query.url),
-                            };
-
-                            // FIXME: not ideal.
-                            let doc = resp.unwrap_or_default();
-                            let mut json = serde_json::to_value(&doc).unwrap_or_default().as_object().map(|o| o.to_owned());
-                            json = json.as_mut().map(|o| {
-                                o.insert("debug".to_owned(), json!({
- "package": "https://crates.io/crates/microformats2",
-    "version": "0.1.0",
-    "note": [
-      "This output was generated from the microformats2 crate available at https://gitlab.com/maxburon/microformats-parser.",
-      "Please file any issues with the parser at https://gitlab.com/maxburon/microformats-parser/issues"
-    ]
-                                })); o.to_owned()
-                            });
-
-                            conn.with_body(serde_json::to_string_pretty(&json).unwrap_or_default())
-                                .with_response_header("content-type", "application/json; utf-8")
-                                .with_status(Status::Ok)
-                                .halt()
-                        }
-                        Err(e) => {
-                            trace!("Failed to parse incoming request: {:#?}", e);
-                            render(conn)
-                        }
-                    }
-                } else {
-                    conn
-                }
-            }),
-        ))
-        .await
+    Response::builder()
+        .header("content-type", "application/json; utf-8")
+        .body(serde_json::to_string_pretty(&json_val).unwrap_or_default())
 }
 
-#[async_std::main]
-async fn main() {
-    env_logger::init();
-    web().await
+#[handler]
+async fn post_handler(
+    Query(query): Query<QueryParams>,
+) -> impl IntoResponse {
+    let resp = match query.html {
+        None => {
+            let client = reqwest::Client::new();
+            let response_result = client.get(query.url.as_str()).send().await;
+            let body = match response_result {
+                Ok(r) => r.text().await.unwrap_or_default(),
+                Err(_) => String::default(),
+            };
+            mf2::from_html(&body, &query.url)
+        }
+        Some(html) => mf2::from_html(&html, &query.url),
+    };
+
+    let doc = resp.unwrap_or_default();
+    let mut json_val = serde_json::to_value(&doc).unwrap_or_default();
+    
+    if let Some(obj) = json_val.as_object_mut() {
+        obj.insert("debug".to_string(), json!({
+            "package": "https://crates.io/crates/microformats2",
+            "version": "0.1.0",
+            "note": [
+                "This output was generated from microformats2 crate available at https://gitlab.com/maxburon/microformats-parser.",
+                "Please file any issues with the parser at https://gitlab.com/maxburon/microformats-parser/issues"
+            ]
+        }));
+    }
+
+    Response::builder()
+        .header("content-type", "application/json; utf-8")
+        .body(serde_json::to_string_pretty(&json_val).unwrap_or_default())
+}
+
+#[handler]
+async fn index_handler() -> impl IntoResponse {
+    IndexTemplate {
+        mf2rust_version: "0.16.1".to_string(),
+    }
+}
+
+#[handler]
+async fn catch_all() -> impl IntoResponse {
+    IndexTemplate {
+        mf2rust_version: "0.16.1".to_string(),
+    }
+}
+
+#[tokio::main]
+async fn main() -> Result<(), std::io::Error> {
+    tracing_subscriber::fmt()
+        .with_env_filter(
+            tracing_subscriber::EnvFilter::from_default_env()
+                .add_directive(tracing::Level::INFO.into()),
+        )
+        .init();
+
+    let port: u16 = std::env::var("PORT")
+        .unwrap_or_else(|_| "8000".to_string())
+        .parse()
+        .unwrap_or(8000);
+    
+    let host = std::env::var("HOST").unwrap_or_else(|_| "0.0.0.0".to_string());
+
+    let addr: SocketAddr = format!("{}:{}", host, port)
+        .parse()
+        .unwrap_or_else(|_| "0.0.0.0:8000".parse().unwrap());
+
+    info!("Starting server on {}", addr);
+
+    let app = Route::new()
+        .at("/", get_handler)
+        .at("/", post_handler)
+        .at("/index.html", index_handler)
+        .at("/*", catch_all)
+        .with(Tracing);
+
+    Server::new(TcpListener::bind(addr))
+        .run(app)
+        .await
 }
