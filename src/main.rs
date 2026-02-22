@@ -1,7 +1,7 @@
 use askama::Template;
 use askama_web::WebTemplate;
 use poem::{IntoResponse, Response, Route, Server, handler, EndpointExt, listener::TcpListener, middleware::Tracing};
-use poem::web::Query;
+use poem::web::{Query, Method};
 use serde::{Deserialize, Serialize};
 use serde_json::json;
 use std::net::SocketAddr;
@@ -22,45 +22,16 @@ pub struct QueryParams {
 }
 
 #[handler]
-async fn get_handler(
+async fn parse_handler(
+    method: &Method,
     Query(query): Query<QueryParams>,
 ) -> impl IntoResponse {
-    let resp = match query.html {
-        None => {
-            let client = reqwest::Client::new();
-            let response_result = client.get(query.url.as_str()).send().await;
-            let body = match response_result {
-                Ok(r) => r.text().await.unwrap_or_default(),
-                Err(_) => String::default(),
-            };
-            mf2::from_html(&body, &query.url)
-        }
-        Some(html) => mf2::from_html(&html, &query.url),
-    };
-
-    let doc = resp.unwrap_or_default();
-    let mut json_val = serde_json::to_value(&doc).unwrap_or_default();
-    
-    if let Some(obj) = json_val.as_object_mut() {
-        obj.insert("debug".to_string(), json!({
-            "package": "https://crates.io/crates/microformats2",
-            "version": "0.1.0",
-            "note": [
-                "This output was generated from microformats2 crate available at https://gitlab.com/maxburon/microformats-parser.",
-                "Please file any issues with the parser at https://gitlab.com/maxburon/microformats-parser/issues"
-            ]
-        }));
+    if *method == Method::GET && query.html.is_none() && query.url.as_str().is_empty() {
+        return IndexTemplate {
+            mf2rust_version: "0.16.1".to_string(),
+        };
     }
 
-    Response::builder()
-        .header("content-type", "application/json; utf-8")
-        .body(serde_json::to_string_pretty(&json_val).unwrap_or_default())
-}
-
-#[handler]
-async fn post_handler(
-    Query(query): Query<QueryParams>,
-) -> impl IntoResponse {
     let resp = match query.html {
         None => {
             let client = reqwest::Client::new();
@@ -130,8 +101,8 @@ async fn main() -> Result<(), std::io::Error> {
     info!("Starting server on {}", addr);
 
     let app = Route::new()
-        .at("/", get_handler)
-        .at("/", post_handler)
+        .route("/", poem::Method::GET, index_handler)
+        .route("/", poem::Method::POST, parse_handler)
         .at("/index.html", index_handler)
         .at("/*", catch_all)
         .with(Tracing);
