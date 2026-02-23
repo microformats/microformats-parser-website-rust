@@ -1,7 +1,8 @@
 use askama::Template;
 use askama_web::WebTemplate;
 use poem::{IntoResponse, Response, Route, Server, handler, EndpointExt, listener::TcpListener, middleware::Tracing};
-use poem::web::{Query, Method};
+use poem::web::Query;
+use poem::{get, post};
 use serde::{Deserialize, Serialize};
 use serde_json::json;
 use std::net::SocketAddr;
@@ -22,16 +23,7 @@ pub struct QueryParams {
 }
 
 #[handler]
-async fn parse_handler(
-    method: &Method,
-    Query(query): Query<QueryParams>,
-) -> impl IntoResponse {
-    if *method == Method::GET && query.html.is_none() && query.url.as_str().is_empty() {
-        return IndexTemplate {
-            mf2rust_version: "0.16.1".to_string(),
-        };
-    }
-
+async fn parse_handler(Query(query): Query<QueryParams>) -> impl IntoResponse {
     let resp = match query.html {
         None => {
             let client = reqwest::Client::new();
@@ -101,8 +93,8 @@ async fn main() -> Result<(), std::io::Error> {
     info!("Starting server on {}", addr);
 
     let app = Route::new()
-        .route("/", poem::Method::GET, index_handler)
-        .route("/", poem::Method::POST, parse_handler)
+        .at("/", get(index_handler))
+        .at("/", post(parse_handler))
         .at("/index.html", index_handler)
         .at("/*", catch_all)
         .with(Tracing);
