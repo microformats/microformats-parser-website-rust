@@ -93,8 +93,12 @@ async fn main() -> Result<(), std::io::Error> {
     info!("Starting server on {}", addr);
 
     let app = Route::new()
-        .at("/", get(index_handler))
-        .at("/", post(parse_handler))
+        .nest(
+            "/",
+            Route::new()
+                .at("", get(index_handler))
+                .at("", post(parse_handler))
+        )
         .at("/index.html", index_handler)
         .at("/*", catch_all)
         .with(Tracing);
