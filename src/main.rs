@@ -2,7 +2,7 @@ use askama::Template;
 use askama_web::WebTemplate;
 use poem::{
     EndpointExt, IntoResponse, Response, Route, Server, get, handler, listener::TcpListener,
-    middleware::Tracing, post, web::Query,
+    middleware::Tracing, post, web::{Form, Query},
 };
 use serde::{Deserialize, Serialize};
 use serde_json::json;
@@ -31,7 +31,7 @@ async fn index_handler(Query(_query): Query<QueryParams>) -> impl IntoResponse {
 }
 
 #[handler]
-async fn parse_handler(Query(query): Query<QueryParams>) -> impl IntoResponse {
+async fn parse_handler(Form(query): Form<QueryParams>) -> impl IntoResponse {
     let resp = match query.html {
         None => {
             let client = reqwest::Client::new();
