@@ -1,7 +1,9 @@
 use askama::Template;
 use askama_web::WebTemplate;
-use poem::{get, handler, post, EndpointExt, IntoResponse, listener::TcpListener, middleware::Tracing, Response, Route, Server};
-use poem::web::Query;
+use poem::{
+    EndpointExt, IntoResponse, Response, Route, Server, get, handler, listener::TcpListener,
+    middleware::Tracing, post, web::Query,
+};
 use serde::{Deserialize, Serialize};
 use serde_json::json;
 use std::net::SocketAddr;
@@ -24,7 +26,7 @@ pub struct QueryParams {
 #[handler]
 async fn index_handler(Query(_query): Query<QueryParams>) -> impl IntoResponse {
     IndexTemplate {
-        mf2rust_version: "0.18.1".to_string(),
+        mf2rust_version: env!("MF2_VERSION").to_string(),
     }
 }
 
@@ -45,11 +47,11 @@ async fn parse_handler(Query(query): Query<QueryParams>) -> impl IntoResponse {
 
     let doc = resp.unwrap_or_default();
     let mut json_val = serde_json::to_value(&doc).unwrap_or_default();
-    
+
     if let Some(obj) = json_val.as_object_mut() {
         obj.insert("debug".to_string(), json!({
             "package": "https://crates.io/crates/microformats2",
-            "version": "0.1.0",
+            "version": env!("CARGO_PKG_VERSION"),
             "note": [
                 "This output was generated from microformats2 crate available at https://gitlab.com/maxburon/microformats-parser.",
                 "Please file any issues with the parser at https://gitlab.com/maxburon/microformats-parser/issues"
@@ -65,7 +67,7 @@ async fn parse_handler(Query(query): Query<QueryParams>) -> impl IntoResponse {
 #[handler]
 async fn catch_all() -> impl IntoResponse {
     IndexTemplate {
-        mf2rust_version: "0.18.1".to_string(),
+        mf2rust_version: env!("MF2_VERSION").to_string(),
     }
 }
 
@@ -82,7 +84,7 @@ async fn main() -> Result<(), std::io::Error> {
         .unwrap_or_else(|_| "8000".to_string())
         .parse()
         .unwrap_or(8000);
-    
+
     let host = std::env::var("HOST").unwrap_or_else(|_| "0.0.0.0".to_string());
 
     let addr: SocketAddr = format!("{}:{}", host, port)
@@ -98,7 +100,5 @@ async fn main() -> Result<(), std::io::Error> {
         .at("/*", catch_all)
         .with(Tracing);
 
-    Server::new(TcpListener::bind(addr))
-        .run(app)
-        .await
+    Server::new(TcpListener::bind(addr)).run(app).await
 }
