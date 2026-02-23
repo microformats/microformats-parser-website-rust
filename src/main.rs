@@ -24,7 +24,7 @@ pub struct QueryParams {
 #[handler]
 async fn index_handler(Query(_query): Query<QueryParams>) -> impl IntoResponse {
     IndexTemplate {
-        mf2rust_version: "0.16.1".to_string(),
+        mf2rust_version: "0.18.1".to_string(),
     }
 }
 
@@ -65,7 +65,7 @@ async fn parse_handler(Query(query): Query<QueryParams>) -> impl IntoResponse {
 #[handler]
 async fn catch_all() -> impl IntoResponse {
     IndexTemplate {
-        mf2rust_version: "0.16.1".to_string(),
+        mf2rust_version: "0.18.1".to_string(),
     }
 }
 

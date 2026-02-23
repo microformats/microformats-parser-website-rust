@@ -735,6 +735,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "html-escape"
+version = "0.2.13"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "6d1ad449764d627e22bfd7cd5e8868264fc9236e07c752972b4080cd351cb476"
+dependencies = [
+ "utf8-width",
+]
+
+[[package]]
 name = "http"
 version = "1.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1098,11 +1107,12 @@ checksum = "f52b00d39961fc5b2736ea853c9cc86238e165017a493d1d5c8eac6bdc4cc273"
 
 [[package]]
 name = "microformats"
-version = "0.16.1"
+version = "0.18.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6b3d799565f5b4285fbb71ef484017ebe977183ee15ddde702c1fdd72bf05095"
+checksum = "d2e0e407d0c394a4975eca8cbd2b35a676910fb836ead2f24a7a0af29abe6c93"
 dependencies = [
  "atom_syndication",
+ "html-escape",
  "http",
  "lazy_static",
  "microformats-types",
@@ -1113,6 +1123,7 @@ dependencies = [
  "swc_html_ast",
  "swc_html_codegen",
  "swc_html_parser",
+ "swc_html_visit",
  "thiserror 2.0.17",
  "time",
  "tracing",
@@ -1141,9 +1152,9 @@ dependencies = [
 
 [[package]]
 name = "microformats-types"
-version = "0.12.2"
+version = "0.14.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4ccbd266f3512a8691ee48e2a3cd7bf18d2ac132b96050d00a3a29c7fde72c0d"
+checksum = "235a1154b6c67c86c0acd0c65a5fe86248b3b4a6f10b162291f98c90342a3800"
 dependencies = [
  "lazy_static",
  "regex",
@@ -1958,9 +1969,9 @@ dependencies = [
 
 [[package]]
 name = "swc_common"
-version = "17.0.1"
+version = "18.0.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "259b675d633a26d24efe3802a9d88858c918e6e8f062d3222d3aa02d56a2cf4c"
+checksum = "a1c06698254e9b47daaf9bbb062af489a350bd8d10dfaab0cabbd32d46cec69d"
 dependencies = [
  "anyhow",
  "ast_node",
@@ -1968,7 +1979,6 @@ dependencies = [
  "bytes-str",
  "either",
  "from_variant",
- "new_debug_unreachable",
  "num-bigint",
  "once_cell",
  "rustc-hash",
@@ -1995,9 +2005,9 @@ dependencies = [
 
 [[package]]
 name = "swc_html_ast"
-version = "17.0.0"
+version = "18.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2edc9c69b6c444136250f1ae90ac85063e20a7e07c30e1ee983fb1d65df2f9a3"
+checksum = "9d6054a221fb5adb7a16462ee9640b55e005407055df09e76dcd9cecda99a9dd"
 dependencies = [
  "is-macro",
  "serde",
@@ -2008,9 +2018,9 @@ dependencies = [
 
 [[package]]
 name = "swc_html_codegen"
-version = "18.0.0"
+version = "19.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "eaf51e63b529067c26350ef076c3d11fc731aece4f9dfdd0bdc8555cc452bc75"
+checksum = "1e59285f4e745b55e09bb233bbec71cc2c84c44513fb3ac54c53c0569a844b9a"
 dependencies = [
  "auto_impl",
  "bitflags",
@@ -2034,9 +2044,9 @@ dependencies = [
 
 [[package]]
 name = "swc_html_parser"
-version = "17.0.0"
+version = "18.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c3b72d280aaf320d70cd5f1ad2a54e8aa916eee8161d4ec1337a81164e265720"
+checksum = "cbd555dbbc13a82cea7d66ebb822ad1a913bf375ad7fcf0a132601a6dcebd713"
 dependencies = [
  "rustc-hash",
  "swc_atoms",
@@ -2056,6 +2066,19 @@ dependencies = [
  "serde",
  "serde_json",
  "swc_atoms",
+]
+
+[[package]]
+name = "swc_html_visit"
+version = "18.0.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "7c8e0ee6d276ded5a671d1b22b8b6acb39f5f8907a73ec20bf5a28be0936a8cd"
+dependencies = [
+ "serde",
+ "swc_atoms",
+ "swc_common",
+ "swc_html_ast",
+ "swc_visit",
 ]
 
 [[package]]
@@ -2536,6 +2559,12 @@ dependencies = [
  "percent-encoding",
  "serde",
 ]
+
+[[package]]
+name = "utf8-width"
+version = "0.1.8"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "1292c0d970b54115d14f2492fe0170adf21d68a1de108eebc51c1df4f346a091"
 
 [[package]]
 name = "utf8_iter"

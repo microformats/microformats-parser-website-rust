@@ -19,4 +19,4 @@ url = "2"
 
 [dependencies.mf2]
 package = "microformats"
-version = "0"
+version = "0.18"
