@@ -1,13 +1,12 @@
 use askama::Template;
 use askama_web::WebTemplate;
-use poem::{IntoResponse, Response, Route, Server, handler, EndpointExt, listener::TcpListener, middleware::Tracing};
+use poem::{get, handler, post, EndpointExt, IntoResponse, listener::TcpListener, middleware::Tracing, Response, Route, Server};
 use poem::web::Query;
-use poem::{get, post};
 use serde::{Deserialize, Serialize};
 use serde_json::json;
 use std::net::SocketAddr;
-use url::Url;
 use tracing::info;
+use url::Url;
 
 #[derive(Template, WebTemplate)]
 #[template(path = "index.html")]
@@ -20,6 +19,13 @@ struct IndexTemplate {
 pub struct QueryParams {
     url: Url,
     html: Option<String>,
+}
+
+#[handler]
+async fn index_handler(Query(_query): Query<QueryParams>) -> impl IntoResponse {
+    IndexTemplate {
+        mf2rust_version: "0.16.1".to_string(),
+    }
 }
 
 #[handler]
@@ -57,13 +63,6 @@ async fn parse_handler(Query(query): Query<QueryParams>) -> impl IntoResponse {
 }
 
 #[handler]
-async fn index_handler() -> impl IntoResponse {
-    IndexTemplate {
-        mf2rust_version: "0.16.1".to_string(),
-    }
-}
-
-#[handler]
 async fn catch_all() -> impl IntoResponse {
     IndexTemplate {
         mf2rust_version: "0.16.1".to_string(),
@@ -93,12 +92,8 @@ async fn main() -> Result<(), std::io::Error> {
     info!("Starting server on {}", addr);
 
     let app = Route::new()
-        .nest(
-            "/",
-            Route::new()
-                .at("", get(index_handler))
-                .at("", post(parse_handler))
-        )
+        .at("/", get(index_handler))
+        .at("/parse", post(parse_handler))
         .at("/index.html", index_handler)
         .at("/*", catch_all)
         .with(Tracing);
