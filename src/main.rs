@@ -52,11 +52,11 @@ async fn parse_handler(Form(query): Form<QueryParams>) -> impl IntoResponse {
 
     if let Some(obj) = json_val.as_object_mut() {
         obj.insert("debug".to_string(), json!({
-            "package": "https://crates.io/crates/microformats2",
-            "version": env!("CARGO_PKG_VERSION"),
+            "package": "https://crates.io/crates/microformats",
+            "version": env!("MF2_VERSION"),
             "note": [
-                "This output was generated from microformats2 crate available at https://gitlab.com/maxburon/microformats-parser.",
-                "Please file any issues with the parser at https://gitlab.com/maxburon/microformats-parser/issues"
+                "This output was generated from microformats crate available at https://gitlab.com/labecasse/microformats-parser.",
+                "Please file any issues with the parser at https://gitlab.com/labecasse/microformats-parser/issues"
             ]
         }));
     }
