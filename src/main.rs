@@ -2,7 +2,7 @@ use askama::Template;
 use askama_web::WebTemplate;
 use poem::{
     EndpointExt, IntoResponse, Response, Route, Server, get, handler, listener::TcpListener,
-    middleware::Tracing, post, web::{Form, Query},
+    middleware::Tracing, post, web::{Form, Query, Redirect},
 };
 use serde::{Deserialize, Serialize};
 use serde_json::json;
@@ -24,6 +24,12 @@ pub struct QueryParams {
     html: Option<String>,
 }
 
+#[derive(Debug, Deserialize, Serialize)]
+#[serde(rename_all = "kebab-case")]
+pub struct IndexQueryParams {
+    url: Option<Url>,
+}
+
 #[handler]
 async fn index_handler(Query(_query): Query<QueryParams>) -> impl IntoResponse {
     IndexTemplate {
@@ -32,19 +38,18 @@ async fn index_handler(Query(_query): Query<QueryParams>) -> impl IntoResponse {
     }
 }
 
-#[handler]
-async fn parse_handler(Form(query): Form<QueryParams>) -> impl IntoResponse {
-    let resp = match query.html {
+async fn parse_and_respond(url: Url, html: Option<String>) -> Response {
+    let resp = match html {
         None => {
             let client = reqwest::Client::new();
-            let response_result = client.get(query.url.as_str()).send().await;
+            let response_result = client.get(url.as_str()).send().await;
             let body = match response_result {
                 Ok(r) => r.text().await.unwrap_or_default(),
                 Err(_) => String::default(),
             };
-            mf2::from_html(&body, &query.url)
+            mf2::from_html(&body, &url)
         }
-        Some(html) => mf2::from_html(&html, &query.url),
+        Some(html) => mf2::from_html(&html, &url),
     };
 
     let doc = resp.unwrap_or_default();
@@ -64,6 +69,19 @@ async fn parse_handler(Form(query): Form<QueryParams>) -> impl IntoResponse {
     Response::builder()
         .header("content-type", "application/json; utf-8")
         .body(serde_json::to_string_pretty(&json_val).unwrap_or_default())
+}
+
+#[handler]
+async fn parse_handler(Form(query): Form<QueryParams>) -> Response {
+    parse_and_respond(query.url, query.html).await
+}
+
+#[handler]
+async fn parse_get_handler(Query(query): Query<IndexQueryParams>) -> Response {
+    match query.url {
+        Some(url) => parse_and_respond(url, None).await,
+        None => Redirect::see_other("/").into_response(),
+    }
 }
 
 #[handler]
@@ -98,7 +116,7 @@ async fn main() -> Result<(), std::io::Error> {
 
     let app = Route::new()
         .at("/", get(index_handler))
-        .at("/parse", post(parse_handler))
+        .at("/parse", post(parse_handler).get(parse_get_handler))
         .at("/index.html", index_handler)
         .at("/*", catch_all)
         .with(Tracing);
