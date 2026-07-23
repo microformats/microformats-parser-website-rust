@@ -13,6 +13,7 @@ use url::Url;
 #[derive(Template, WebTemplate)]
 #[template(path = "index.html")]
 struct IndexTemplate {
+    site_version: String,
     mf2rust_version: String,
 }
 
@@ -26,6 +27,7 @@ pub struct QueryParams {
 #[handler]
 async fn index_handler(Query(_query): Query<QueryParams>) -> impl IntoResponse {
     IndexTemplate {
+        site_version: env!("CARGO_PKG_VERSION").to_string(),
         mf2rust_version: env!("MF2_VERSION").to_string(),
     }
 }
@@ -67,6 +69,7 @@ async fn parse_handler(Form(query): Form<QueryParams>) -> impl IntoResponse {
 #[handler]
 async fn catch_all() -> impl IntoResponse {
     IndexTemplate {
+        site_version: env!("CARGO_PKG_VERSION").to_string(),
         mf2rust_version: env!("MF2_VERSION").to_string(),
     }
 }
