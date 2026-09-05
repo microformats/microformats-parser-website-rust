@@ -2,7 +2,7 @@ use askama::Template;
 use askama_web::WebTemplate;
 use poem::{
     EndpointExt, IntoResponse, Response, Route, Server, get, handler, listener::TcpListener,
-    middleware::Tracing, post, web::{Form, Query},
+    middleware::Tracing, post, web::{Form, Query, Redirect},
 };
 use serde::{Deserialize, Serialize};
 use serde_json::json;
@@ -13,6 +13,7 @@ use url::Url;
 #[derive(Template, WebTemplate)]
 #[template(path = "index.html")]
 struct IndexTemplate {
+    site_version: String,
     mf2rust_version: String,
 }
 
@@ -23,26 +24,32 @@ pub struct QueryParams {
     html: Option<String>,
 }
 
+#[derive(Debug, Deserialize, Serialize)]
+#[serde(rename_all = "kebab-case")]
+pub struct IndexQueryParams {
+    url: Option<Url>,
+}
+
 #[handler]
 async fn index_handler(Query(_query): Query<QueryParams>) -> impl IntoResponse {
     IndexTemplate {
+        site_version: env!("CARGO_PKG_VERSION").to_string(),
         mf2rust_version: env!("MF2_VERSION").to_string(),
     }
 }
 
-#[handler]
-async fn parse_handler(Form(query): Form<QueryParams>) -> impl IntoResponse {
-    let resp = match query.html {
+async fn parse_and_respond(url: Url, html: Option<String>) -> Response {
+    let resp = match html {
         None => {
             let client = reqwest::Client::new();
-            let response_result = client.get(query.url.as_str()).send().await;
+            let response_result = client.get(url.as_str()).send().await;
             let body = match response_result {
                 Ok(r) => r.text().await.unwrap_or_default(),
                 Err(_) => String::default(),
             };
-            mf2::from_html(&body, &query.url)
+            mf2::from_html(&body, &url)
         }
-        Some(html) => mf2::from_html(&html, &query.url),
+        Some(html) => mf2::from_html(&html, &url),
     };
 
     let doc = resp.unwrap_or_default();
@@ -50,11 +57,11 @@ async fn parse_handler(Form(query): Form<QueryParams>) -> impl IntoResponse {
 
     if let Some(obj) = json_val.as_object_mut() {
         obj.insert("debug".to_string(), json!({
-            "package": "https://crates.io/crates/microformats2",
-            "version": env!("CARGO_PKG_VERSION"),
+            "package": "https://crates.io/crates/microformats",
+            "version": env!("MF2_VERSION"),
             "note": [
-                "This output was generated from microformats2 crate available at https://gitlab.com/maxburon/microformats-parser.",
-                "Please file any issues with the parser at https://gitlab.com/maxburon/microformats-parser/issues"
+                "This output was generated from microformats crate available at https://gitlab.com/labecasse/microformats-parser.",
+                "Please file any issues with the parser at https://gitlab.com/labecasse/microformats-parser/issues"
             ]
         }));
     }
@@ -65,8 +72,22 @@ async fn parse_handler(Form(query): Form<QueryParams>) -> impl IntoResponse {
 }
 
 #[handler]
+async fn parse_handler(Form(query): Form<QueryParams>) -> Response {
+    parse_and_respond(query.url, query.html).await
+}
+
+#[handler]
+async fn parse_get_handler(Query(query): Query<IndexQueryParams>) -> Response {
+    match query.url {
+        Some(url) => parse_and_respond(url, None).await,
+        None => Redirect::see_other("/").into_response(),
+    }
+}
+
+#[handler]
 async fn catch_all() -> impl IntoResponse {
     IndexTemplate {
+        site_version: env!("CARGO_PKG_VERSION").to_string(),
         mf2rust_version: env!("MF2_VERSION").to_string(),
     }
 }
@@ -95,7 +116,7 @@ async fn main() -> Result<(), std::io::Error> {
 
     let app = Route::new()
         .at("/", get(index_handler))
-        .at("/parse", post(parse_handler))
+        .at("/parse", post(parse_handler).get(parse_get_handler))
         .at("/index.html", index_handler)
         .at("/*", catch_all)
         .with(Tracing);

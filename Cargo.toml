@@ -1,6 +1,6 @@
 [package]
 name = "microformats-parser-website-rust"
-version = "0.1.2"
+version = "0.2.0"
 edition = "2024"
 authors = ["Jacky Alciné <yo@jacky.wtf>"]
 
@@ -19,4 +19,4 @@ url = "2"
 
 [dependencies.mf2]
 package = "microformats"
-version = "0.18"
+version = "0.19.0"
